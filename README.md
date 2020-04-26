@@ -8,7 +8,6 @@ That site is extremely slow and this script is meant to help with that, bringing
 Copyright (C) 2020 Tiago Epifânio
 
 # License
-Copyright (C) 2020 Tiago Epifânio
 Licensed under Creative Commons: By Attribution 3.0 License http://creativecommons.org/licenses/by/3.0/
 
 ArQual is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or
