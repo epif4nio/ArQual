@@ -2,7 +2,7 @@
 ArQual, air quality index measurements in Portugal.
 
 All data is scraped from the website of [APA - Associação Portuguesa do Ambiente](https://qualar.apambiente.pt/).
-That site is extremely slow and this script is meant to help with that, bringing air quality measurements right in to your command line.
+That site is extremely slow and this script is meant to help with that, bringing air quality measurements right into your command line.
 
 # Copyright
 Copyright (C) 2020 Tiago Epifânio
