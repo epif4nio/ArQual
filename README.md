@@ -7,7 +7,7 @@ That site is extremely slow and this script is meant to help with that, bringing
 # Copyright
 Copyright (C) 2020 Tiago Epifânio
 
-#License
+# License
 Copyright (C) 2020 Tiago Epifânio
 Licensed under Creative Commons: By Attribution 3.0 License http://creativecommons.org/licenses/by/3.0/
 
