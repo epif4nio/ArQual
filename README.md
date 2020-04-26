@@ -1,8 +1,23 @@
 # ArQual
-ArQual, air quality index measurements in Portugal.
+ArQual, air quality index measurements in Portuguese territory.
 
 All data is scraped from the website of [APA - Associação Portuguesa do Ambiente](https://qualar.apambiente.pt/).
 That site is extremely slow and this script is meant to help with that, bringing air quality measurements right into your command line.
+
+# How to use
+```
+Usage: arqual COMMAND [OPTIONS]
+
+Commands:
+  stations  Get a list of air quality measurement stations
+  indexes   Get air quality index for a station
+
+Options:
+  -d, --date DATE           Specify the date for the data you want (YYYY-MM-DD)
+  -s, --station STATION_ID  Specify the ID of the station
+  -v, --version             Get the version of the program
+  -h, --help                This text that you are reading
+```
 
 # Copyright
 Copyright (C) 2020 Tiago Epifânio
