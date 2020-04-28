@@ -45,10 +45,10 @@ Example 1 - get list of stations:\n\
 Example 2 - get air quality indexes of station 3072 for 2020-04-17:\n\
   ./arqual.py indexes -s 3072 -d 2020-04-17\n\n\
 Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:\n\
-  ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20'  
+  ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20'
 
 VERSION_TEXT = 'ArQual 0.2.0\nNotice: All data is scraped from https://qualar.apambiente.pt'
-URL_POLUENTES = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/0/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=data,poluente_abv'
+URL_POLUENTES = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/0/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=data,estacao_nome,poluente_abv'
 URL_GLOBAL = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/1/query?f=json&spatialRel=esriSpatialRelIntersects'
 
 def build_url(base_url, where, out_fields = "*", order_by = "", return_geometry = "false"):
@@ -63,19 +63,19 @@ def add_parameter(statement, name, value, comparison_operator = "=", logical_ope
         statement += "%s%s'%s'" % (name, comparison_operator, value)
     return statement
 
-def get_indexes(estacao_id, date = "", date_min = "", date_max = ""):
+def get_indexes(station_id, date = "", date_min = "", date_max = ""):
     if not date and not date_min and not date_max:
         today = datetime.today().strftime("%Y-%m-%d")
         yesterday = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
-        get_indexes(estacao_id, yesterday)
+        get_indexes(station_id, yesterday)
         print("\n")
-        get_indexes(estacao_id, today)
+        get_indexes(station_id, today)
         return
 
     where = add_parameter("", "data", date, "=")
     where = add_parameter(where, "data", date_min, ">=")
     where = add_parameter(where, "data", date_max, "<=")
-    where = add_parameter(where, "estacao_id", estacao_id)
+    where = add_parameter(where, "estacao_id", station_id)
 
     url = build_url(URL_POLUENTES, where)
     http_response = requests.get(url)
@@ -92,17 +92,27 @@ def get_indexes(estacao_id, date = "", date_min = "", date_max = ""):
         return
 
     previous_date = ""
+    previous_station = ""
 
     for feature in response["features"]:
         response_date = feature["attributes"]["data"]
-        if (response_date != previous_date):
+        response_station = feature["attributes"]["estacao_id"]
+        if (response_date != previous_date or response_station != previous_station):
             previous_date = response_date
+            previous_station = response_station
             formatted_date = datetime.utcfromtimestamp(response_date / 1000).strftime('%Y-%m-%d')
-            title = "\n%s - %s" % (response["features"][0]["attributes"]["estacao_nome"], formatted_date)
+            title = "\n%s - %s" % (feature["attributes"]["estacao_nome"], formatted_date)
             print(title)
             print("-" * len(title))
-        attributes = feature["attributes"]
-        print("%s: %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"]))
+
+        print(format_index_values(feature["attributes"]))
+
+def format_index_values(attributes):
+    formatted = "%s: %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"])
+    if (attributes["hora_display"] != "N.h"):
+        formatted += " (%s)" % attributes["hora_display"]
+
+    return formatted
 
 def format_station(station):
     attr = station["attributes"]
@@ -159,7 +169,7 @@ def main(argv):
         date = ''
         date_min = ''
         date_max = ''
-        estacao = ''
+        station = ''
 
         try:
             opts, args = getopt.getopt(argv[1:],"d:s:i:x:",["date=","station=","datemin=","datemax="])
@@ -174,14 +184,9 @@ def main(argv):
             elif opt in ("-x", "--datemax"):
                 date_max = arg
             elif opt in ("-s", "--station"):
-                estacao = arg
+                station = arg
 
-        if (not estacao):
-            print('Error: missing argument --station\n')
-            print(HELP)
-            sys.exit(1)
-
-        get_indexes(estacao, date, date_min, date_max)
+        get_indexes(station, date, date_min, date_max)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
