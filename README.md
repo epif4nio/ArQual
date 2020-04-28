@@ -6,7 +6,7 @@ That site is extremely slow and this script is meant to help with that, bringing
 
 # How to use
 ```
-Usage: arqual COMMAND [OPTIONS]
+Usage: ./arqual.py COMMAND [OPTIONS]
 
 Commands:
   stations  Get a list of air quality measurement stations
@@ -14,9 +14,21 @@ Commands:
 
 Options:
   -d, --date DATE           Specify the date for the data you want (YYYY-MM-DD)
+  -i, --datemin DATE        Specify minimum date for the data you want (YYYY-MM-DD)\n\
+  -x, --datemax DATE        Specify maximum date for the data you want (YYYY-MM-DD)\n\
   -s, --station STATION_ID  Specify the ID of the station
   -v, --version             Get the version of the program
   -h, --help                This text that you are reading
+
+Example 1 - get list of stations:
+  ./arqual.py get_stations
+
+Example 2 - get air quality indexes of station 3072 for 2020-04-17:
+  ./arqual.py indexes -s 3072 -d 2020-04-17
+
+Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:
+  ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20
+
 ```
 
 # Copyright
