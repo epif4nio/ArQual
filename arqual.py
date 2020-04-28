@@ -51,6 +51,9 @@ VERSION_TEXT = 'ArQual 0.2.0\nNotice: All data is scraped from https://qualar.ap
 URL_POLUENTES = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/0/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=data,estacao_nome,poluente_abv'
 URL_GLOBAL = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/1/query?f=json&spatialRel=esriSpatialRelIntersects'
 
+PRINT_RED_ON_BLACK = "\033[1;31;48m"
+PRINT_COLOR_RESET = "\033[0;0m"
+
 def build_url(base_url, where, out_fields = "*", order_by = "", return_geometry = "false"):
     encoded_where = urllib.parse.quote(where)
     url = "%s&outFields=%s&orderByFields=%s&returnGeometry=%s&where=%s" % (base_url, out_fields, order_by, return_geometry, encoded_where)
@@ -111,6 +114,8 @@ def format_index_values(attributes):
     formatted = "%s: %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"])
     if (attributes["hora_display"] != "N.h"):
         formatted += " (%s)" % attributes["hora_display"]
+    if (attributes["alerta"] == 1):
+        formatted +=  PRINT_RED_ON_BLACK + " ALERTA!" + PRINT_COLOR_RESET
 
     return formatted
 
