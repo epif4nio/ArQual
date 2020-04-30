@@ -48,7 +48,7 @@ Example 2 - get air quality indexes of station 3072 for 2020-04-17:\n\
 Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:\n\
   ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20\n\
 Example 4 - get all alerts since 2019-01-01\n\
-  ./arqual.py alerts -datemin 2019-01-01'
+  ./arqual.py alerts --datemin 2019-01-01'
 
 VERSION_TEXT = 'ArQual 0.2.0\nNotice: All data is scraped from https://qualar.apambiente.pt'
 URL_ALERTAS = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/9/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=estacao_nome,data,poluente_abv'

@@ -31,7 +31,7 @@ Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-
   ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20
 
 Example 4 - get all alerts since 2019-01-01
-  ./arqual.py alerts -datemin 2019-01-01
+  ./arqual.py alerts --datemin 2019-01-01
 ```
 
 # Copyright
