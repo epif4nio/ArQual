@@ -158,8 +158,8 @@ def get_stations(date = ""):
     if ("error" in response):
         return
 
-    estacoes_formatted = "\n".join(map(format_station, response["features"]))
-    print(estacoes_formatted)
+    formatted_stations = "\n".join(map(format_station, response["features"]))
+    print(formatted_stations)
 
 def get_alerts(station = "", date = "", date_min = "", date_max = "", pollutant = ""):
     if not station and not pollutant and not date and not date_min and not date_max:
