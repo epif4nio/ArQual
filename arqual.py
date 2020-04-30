@@ -32,7 +32,8 @@ HELP = '\
 Usage: ./arqual.py COMMAND [OPTIONS]\n\n\
 Commands:\n\
   stations  Get a list of air quality measurement stations\n\
-  indexes   Get air quality index for a station\n\n\
+  indexes   Get air quality index for a station\n\
+  alerts    Get alerts\n\n\
 Options:\n\
   -d, --date DATE           Specify the date for the data you want (YYYY-MM-DD)\n\
   -i, --datemin DATE        Specify minimum date for the data you want (YYYY-MM-DD)\n\
@@ -45,7 +46,9 @@ Example 1 - get list of stations:\n\
 Example 2 - get air quality indexes of station 3072 for 2020-04-17:\n\
   ./arqual.py indexes -s 3072 -d 2020-04-17\n\n\
 Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:\n\
-  ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20'
+  ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20\n\
+Example 4 - get all alerts since 2019-01-01\n\
+  ./arqual.py alerts -datemin 2019-01-01'
 
 VERSION_TEXT = 'ArQual 0.2.0\nNotice: All data is scraped from https://qualar.apambiente.pt'
 URL_ALERTAS = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/9/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=estacao_nome,data,poluente_abv'
@@ -74,7 +77,7 @@ def format_short_date(date):
         return date.strftime("%Y-%m-%d")
 
 def format_index_values(attributes):
-    formatted = "%s: %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"])
+    formatted = "%s - %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"])
     if (attributes["hora_display"] != "N.h"):
         formatted += " (%s)" % attributes["hora_display"]
     if (attributes["alerta"] == 1):
@@ -88,7 +91,7 @@ def format_station(station):
 
 def format_alert(station):
     attributes = station["attributes"]
-    formatted = "%s: %s - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["indice_nome"])
+    formatted = "%s - %s - %s - %s" % (format_short_date(attributes["data"]), attributes["poluente_abv"],attributes["avg_display"], attributes["indice_nome"])
     if (attributes["hora_display"] != "N.h"):
         formatted += " (%s)" % attributes["hora_display"]
 
@@ -190,8 +193,8 @@ def get_alerts(station = "", date = "", date_min = "", date_max = "", pollutant 
         response_station = feature["attributes"]["estacao_id"]
         if (response_station != previous_station):
             previous_station = response_station
-            formatted_date = format_short_date(feature["attributes"]["data"])
-            title = "\n%s - %s" % (feature["attributes"]["estacao_nome"], formatted_date)
+            attr = feature["attributes"]
+            title = "\n%s (%s) - %s" % (attr["estacao_nome"], attr["estacao_id"], format_short_date(attr["data"]))
             print(title)
             print("-" * len(title))
 

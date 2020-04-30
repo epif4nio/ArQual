@@ -11,6 +11,7 @@ Usage: ./arqual.py COMMAND [OPTIONS]
 Commands:
   stations  Get a list of air quality measurement stations
   indexes   Get air quality index for a station
+  alerts    Get alerts
 
 Options:
   -d, --date DATE           Specify the date for the data you want (YYYY-MM-DD)
@@ -29,6 +30,8 @@ Example 2 - get air quality indexes of station 3072 for 2020-04-17:
 Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:
   ./arqual.py indexes -s 3072 --datemin 2020-04-10 --datemax 2020-04-20
 
+Example 4 - get all alerts since 2019-01-01
+  ./arqual.py alerts -datemin 2019-01-01
 ```
 
 # Copyright
