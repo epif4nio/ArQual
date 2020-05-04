@@ -16,14 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 '''
 
-from datetime import datetime
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
 
 import getopt
 import requests
-import urllib.parse
 import sys
+import urllib.parse
 
 HELP = '\
 Usage: ./arqual.py COMMAND [OPTIONS]\n\n\
@@ -47,18 +47,34 @@ Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-
 Example 4 - get all alerts since 2019-01-01\n\
   ./arqual.py alerts --datemin 2019-01-01'
 
-VERSION_TEXT = 'ArQual 0.2.0\nNotice: All data is scraped from https://qualar.apambiente.pt'
-URL_ALERTAS = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/9/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=estacao_nome,data,poluente_abv'
-URL_POLUENTES = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/0/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=data,estacao_nome,poluente_abv'
-URL_GLOBAL = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer/1/query?f=json&spatialRel=esriSpatialRelIntersects'
+VERSION_TEXT = 'ArQual 0.2.1\nNotice: All data is scraped from https://qualar.apambiente.pt'
 
-PRINT_RED_ON_BLACK = "\033[1;31;48m"
+URL_MAP_SERVER = 'https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/QAR/MapServer'
+
+URL_ALERTS = URL_MAP_SERVER + '/9/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=estacao_nome,data,poluente_abv'
+URL_INDEXES = URL_MAP_SERVER + '/0/query?f=json&spatialRel=esriSpatialRelIntersects&orderByFields=data,estacao_nome,poluente_abv'
+URL_STATIONS = URL_MAP_SERVER + '/1/query?f=json&spatialRel=esriSpatialRelIntersects'
+
 PRINT_COLOR_RESET = "\033[0;0m"
+PRINT_RED_ON_BLACK = "\033[1;31;48m"
 
-def build_url(base_url, where, out_fields = "*", order_by = "", return_geometry = "false"):
-    encoded_where = urllib.parse.quote(where)
-    url = "%s&outFields=%s&orderByFields=%s&returnGeometry=%s&where=%s" % (base_url, out_fields, order_by, return_geometry, encoded_where)
-    return url
+CMD_ALERTS = 'alerts'
+CMD_INDEXES = 'indexes'
+CMD_STATIONS = 'stations'
+
+ATTR_ALERT = 'alerta'
+ATTR_AVG_DISPLAY = 'avg_display'
+ATTR_DATE = 'data'
+ATTR_INDEX_NAME = 'indice_nome'
+ATTR_HOUR_DISPLAY = 'hora_display'
+ATTR_MUNICIPALITY_NOME = 'concelho_nome'
+ATTR_POLUTTANT_ABV = 'poluente_abv'
+ATTR_POLUTTANT_AGR = 'poluente_agr'
+ATTR_STATION_ID = 'estacao_id'
+ATTR_STATION_NAME = 'estacao_nome'
+
+GROUP_ATTRIBUTES = 'attributes'
+GROUP_FEATURES = 'features'
 
 def add_parameter(statement, name, value, comparison_operator = "=", logical_operator = 'and'):
     if value:
@@ -74,136 +90,121 @@ def format_short_date(date):
         return date.strftime("%Y-%m-%d")
 
 def format_index_values(attributes):
-    formatted = "%s - %s (%s) - %s" % (attributes["poluente_abv"], attributes["avg_display"], attributes["poluente_agr"], attributes["indice_nome"])
-    if (attributes["hora_display"] != "N.h"):
-        formatted += " (%s)" % attributes["hora_display"]
-    if (attributes["alerta"] == 1):
-        formatted +=  PRINT_RED_ON_BLACK + " ALERTA!" + PRINT_COLOR_RESET
+    formatted = "%s - %s (%s) - %s" % (attributes[ATTR_POLUTTANT_ABV], attributes[ATTR_AVG_DISPLAY], attributes[ATTR_POLUTTANT_AGR], attributes[ATTR_INDEX_NAME])
+
+    if (attributes[ATTR_HOUR_DISPLAY] != "N.h"):
+        formatted += " (%s)" % attributes[ATTR_HOUR_DISPLAY]
+    if (attributes[ATTR_ALERT] == 1):
+        formatted +=  PRINT_RED_ON_BLACK + " ALERT!" + PRINT_COLOR_RESET
 
     return formatted
 
 def format_station(station):
-    attr = station["attributes"]
-    return "%s, %s (%s)" % (attr["concelho_nome"], attr["estacao_nome"], attr["estacao_id"])
+    attr = station[GROUP_ATTRIBUTES]
+    return "%s, %s (%s)" % (attr[ATTR_MUNICIPALITY_NOME], attr[ATTR_STATION_NAME], attr[ATTR_STATION_ID])
 
 def format_alert(station):
-    attributes = station["attributes"]
-    formatted = "%s - %s - %s - %s" % (format_short_date(attributes["data"]), attributes["poluente_abv"],attributes["avg_display"], attributes["indice_nome"])
-    if (attributes["hora_display"] != "N.h"):
-        formatted += " (%s)" % attributes["hora_display"]
+    attributes = station[GROUP_ATTRIBUTES]
+    formatted = "%s - %s - %s - %s" % (format_short_date(attributes[ATTR_DATE]), attributes[ATTR_POLUTTANT_ABV],attributes[ATTR_AVG_DISPLAY], attributes[ATTR_INDEX_NAME])
+    if (attributes[ATTR_HOUR_DISPLAY] != "N.h"):
+        formatted += " (%s)" % attributes[ATTR_HOUR_DISPLAY]
 
     return formatted
 
-def get_indexes(station_id, date = "", date_min = "", date_max = "", pollutant = ""):
-    if not date and not date_min and not date_max:
-        today = datetime.today().strftime("%Y-%m-%d")
-        yesterday = format_short_date(datetime.today() - timedelta(days=1))
-        get_indexes(station_id, yesterday, None, None, pollutant)
-        get_indexes(station_id, today, None, None, pollutant)
-        return
+def build_url(base_url, where, out_fields = "*", order_by = "", return_geometry = "false"):
+    encoded_where = urllib.parse.quote(where)
+    url = "%s&outFields=%s&orderByFields=%s&returnGeometry=%s&where=%s" % (base_url, out_fields, order_by, return_geometry, encoded_where)
+    return url
 
-    where = add_parameter("", "data", date, "=")
-    where = add_parameter(where, "data", date_min, ">=")
-    where = add_parameter(where, "data", date_max, "<=")
-    where = add_parameter(where, "estacao_id", station_id)
-    where = add_parameter(where, "poluente_abv", pollutant)
-
-    url = build_url(URL_POLUENTES, where)
-    http_response = requests.get(url)
+def http_get(url, where, out_fields = "*", order_by = "", return_geometry = "false"):
+    full_url = build_url(url, where, out_fields, order_by, return_geometry)
+    http_response = requests.get(full_url)
 
     if http_response.status_code != 200:
-        return
+        raise Exception("Http error: " + str(http_response.status_code))
 
     response = http_response.json()
 
     if ("error" in response):
-        return
+        raise Exception("Error returned from server: " + str(response))
 
-    if "features" not in response or len(response["features"]) == 0:
-        print("No data found.")
-        return
+    return response
 
-    previous_date = ""
-    previous_station = ""
+def get_indexes(station_id, date = "", date_min = "", date_max = "", pollutant = ""):
+    if not date and not date_min and not date_max:
+        date = datetime.today().strftime("%Y-%m-%d")
 
-    for feature in response["features"]:
-        response_date = feature["attributes"]["data"]
-        response_station = feature["attributes"]["estacao_id"]
+    where = add_parameter("", ATTR_DATE, date, "=")
+    where = add_parameter(where, ATTR_DATE, date_min, ">=")
+    where = add_parameter(where, ATTR_DATE, date_max, "<=")
+    where = add_parameter(where, ATTR_STATION_ID, station_id)
+    where = add_parameter(where, ATTR_POLUTTANT_ABV, pollutant)
+
+    response = http_get(URL_INDEXES, where)
+
+    if GROUP_FEATURES not in response or len(response[GROUP_FEATURES]) == 0:
+        raise Exception("No data found.")
+
+    previous_date = previous_station = ""
+
+    for feature in response[GROUP_FEATURES]:
+
+        response_date = feature[GROUP_ATTRIBUTES][ATTR_DATE]
+        response_station = feature[GROUP_ATTRIBUTES][ATTR_STATION_ID]
+
         if (response_date != previous_date or response_station != previous_station):
             previous_date = response_date
             previous_station = response_station
             formatted_date = format_short_date(response_date)
-            title = "\n%s - %s" % (feature["attributes"]["estacao_nome"], formatted_date)
+            title = "\n%s - %s" % (feature[GROUP_ATTRIBUTES][ATTR_STATION_NAME], formatted_date)
             print(title)
             print("-" * len(title))
 
-        print(format_index_values(feature["attributes"]))
+        print(format_index_values(feature[GROUP_ATTRIBUTES]))
 
 def get_stations(date = ""):
     if not date:
         date = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    where = add_parameter("", "data", date)
-    url = build_url(URL_GLOBAL, where, "concelho_nome,estacao_id,estacao_nome", "concelho_nome,estacao_nome")
-    http_response = requests.get(url)
+    where = add_parameter("", ATTR_DATE, date)
 
-    if http_response.status_code != 200:
-        return
+    response = http_get(URL_STATIONS, where, "*", "concelho_nome,estacao_id,estacao_nome", "concelho_nome,estacao_nome")
 
-    response = http_response.json()
-
-    if ("error" in response):
-        return
-
-    formatted_stations = "\n".join(map(format_station, response["features"]))
+    formatted_stations = "\n".join(map(format_station, response[GROUP_FEATURES]))
     print(formatted_stations)
 
 def get_alerts(station = "", date = "", date_min = "", date_max = "", pollutant = ""):
     if not station and not pollutant and not date and not date_min and not date_max:
-        print("Please specify one of following: station, date or pollutant")
-        exit(1)
+        raise Exception("Please specify one of following: station, date or pollutant")
 
-    where = add_parameter("", "data", date, "=")
-    where = add_parameter(where, "data", date_min, ">=")
-    where = add_parameter(where, "data", date_max, "<=")
-    where = add_parameter(where, "estacao_id", station)
-    where = add_parameter(where, "poluente_abv", pollutant)
+    where = add_parameter("", ATTR_DATE, date, "=")
+    where = add_parameter(where, ATTR_DATE, date_min, ">=")
+    where = add_parameter(where, ATTR_DATE, date_max, "<=")
+    where = add_parameter(where, ATTR_STATION_ID, station)
+    where = add_parameter(where, ATTR_POLUTTANT_ABV, pollutant)
 
-    url = build_url(URL_ALERTAS, where, "*", "data")
-    http_response = requests.get(url)
+    response = http_get(URL_ALERTS, where, "*", ATTR_DATE)
 
-    if http_response.status_code != 200:
-        return
-
-    response = http_response.json()
-
-    if ("error" in response):
-        return
-
-    if (len(response["features"]) == 0):
-        print("No data found.")
-        return
+    if (len(response[GROUP_FEATURES]) == 0):
+        raise Exception("No data found.")
 
     previous_station = ""
 
-    for feature in response["features"]:
-        response_station = feature["attributes"]["estacao_id"]
+    for feature in response[GROUP_FEATURES]:
+        response_station = feature[GROUP_ATTRIBUTES][ATTR_STATION_ID]
         if (response_station != previous_station):
             previous_station = response_station
-            attr = feature["attributes"]
-            title = "\n%s (%s) - %s" % (attr["estacao_nome"], attr["estacao_id"], format_short_date(attr["data"]))
-            print(title)
-            print("-" * len(title))
-
+            attr = feature[GROUP_ATTRIBUTES]
+            title = "\n%s (%s) - %s" % (attr[ATTR_STATION_NAME], attr[ATTR_STATION_ID], format_short_date(attr[ATTR_DATE]))
+            print(title + "\n" + "-" * len(title))
         print(format_alert(feature))
 
 def main(argv):
-    inputfile = ''
-    outputfile = ''
-
-    if len(argv) == 0 or argv[0] not in ['stations', 'indexes', 'alerts' ,'-h', '--help', '-v', '--version', '-p', '--pollutant']:
+    if len(argv) == 0 or argv[0] not in [CMD_STATIONS, CMD_INDEXES, CMD_ALERTS ,'-h', '--help', '-v', '--version', '-p', '--pollutant']:
         print(HELP)
         sys.exit(1)
+
+    date = date_min = date_max = station = pollutant = ''
 
     if  argv[0].lower() in ['--version', '-v']:
         print(VERSION_TEXT)
@@ -211,9 +212,7 @@ def main(argv):
     elif  argv[0].lower() in ['-h', '--help']:
         print(HELP)
         sys.exit(0)
-    elif  argv[0].lower() == 'stations':
-        date = ''
-
+    elif  argv[0].lower() == CMD_STATIONS:
         try:
             opts, args = getopt.getopt(argv[1:],"d:",["date="])
         except getopt.GetoptError:
@@ -225,13 +224,7 @@ def main(argv):
                 date = arg
 
         get_stations(date)
-    elif argv[0].lower() == 'indexes':
-        date = ''
-        date_min = ''
-        date_max = ''
-        station = ''
-        pollutant = ''
-
+    elif argv[0].lower() in (CMD_INDEXES, CMD_ALERTS) :
         try:
             opts, args = getopt.getopt(argv[1:],"d:s:i:x:p:",["date=","station=","datemin=","datemax=","pollutant="])
         except getopt.GetoptError:
@@ -249,32 +242,13 @@ def main(argv):
             elif opt in ("-p", "--pollutant"):
                 pollutant = arg
 
-        get_indexes(station, date, date_min, date_max, pollutant)
-    elif argv[0].lower() == 'alerts':
-        date = ''
-        date_min = ''
-        date_max = ''
-        station = ''
-        pollutant = ''
-
-        try:
-            opts, args = getopt.getopt(argv[1:],"d:s:i:x:p:",["date=","station=","datemin=","datemax=","pollutant="])
-        except getopt.GetoptError:
-            print(HELP)
-            sys.exit(1)
-        for opt, arg in opts:
-            if opt in ("-d", "--date"):
-                date = arg
-            elif opt in ("-i", "--datemin"):
-                date_min = arg
-            elif opt in ("-x", "--datemax"):
-                date_max = arg
-            elif opt in ("-s", "--station"):
-                station = arg
-            elif opt in ("-p", "--pollutant"):
-                pollutant = arg
-
-        get_alerts(station, date, date_min, date_max, pollutant)
+        if argv[0].lower() == CMD_INDEXES:
+            get_indexes(station, date, date_min, date_max, pollutant)
+        else:
+            get_alerts(station, date, date_min, date_max, pollutant)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except Exception as ex:
+        print('Error: ' + str(ex))
