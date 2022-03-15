@@ -22,7 +22,7 @@ Options:
   -h, --help                This text that you are reading
 
 Example 1 - get list of stations:
-  ./arqual.py get_stations
+  ./arqual.py stations
 
 Example 2 - get air quality indexes of station 3072 for 2020-04-17:
   ./arqual.py indexes -s 3072 -d 2020-04-17
