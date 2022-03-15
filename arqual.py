@@ -39,7 +39,7 @@ Options:\n\
   -v, --version             Get the version of the program\n\
   -h, --help                This text that you are reading\n\n\
 Example 1 - get list of stations:\n\
-  ./arqual.py get_stations\n\n\
+  ./arqual.py stations\n\n\
 Example 2 - get air quality indexes of station 3072 for 2020-04-17:\n\
   ./arqual.py indexes -s 3072 -d 2020-04-17\n\n\
 Example 3 - get air quality indexes of station 3072 between 2020-04-10 and 2020-04-20:\n\
